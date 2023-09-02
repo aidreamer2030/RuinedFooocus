@@ -112,18 +112,18 @@ def refresh_loras(loras):
 
 refresh_base_model(default_settings["base_model"])
 
-positive_conditions_cache = None
-negative_conditions_cache = None
-positive_conditions_refiner_cache = None
-negative_conditions_refiner_cache = None
+positive_conditions = None
+negative_conditions = None
+positive_conditions_refiner = None
+negative_conditions_refiner = None
 
 
 def clean_prompt_cond_caches():
-    global positive_conditions_cache, negative_conditions_cache, positive_conditions_refiner_cache, negative_conditions_refiner_cache
-    positive_conditions_cache = None
-    negative_conditions_cache = None
-    positive_conditions_refiner_cache = None
-    negative_conditions_refiner_cache = None
+    global positive_conditions, negative_conditions, positive_conditions_refiner, negative_conditions_refiner
+    positive_conditions = None
+    negative_conditions = None
+    positive_conditions_refiner = None
+    negative_conditions_refiner = None
     return
 
 
@@ -146,24 +146,16 @@ def process(
     scheduler,
     callback,
 ):
-    global positive_conditions_cache, negative_conditions_cache, positive_conditions_refiner_cache, negative_conditions_refiner_cache
+    global positive_conditions, negative_conditions, positive_conditions_refiner, negative_conditions_refiner
 
     with suppress_stdout():
-        positive_conditions = (
-            core.encode_prompt_condition(clip=xl_base_patched.clip, prompt=positive_prompt)
-            if positive_conditions_cache is None
-            else positive_conditions_cache
-        )
-        negative_conditions = (
-            core.encode_prompt_condition(clip=xl_base_patched.clip, prompt=negative_prompt)
-            if negative_conditions_cache is None
-            else negative_conditions_cache
-        )
+        if positive_conditions is None:
+            positive_conditions = core.encode_prompt_condition(clip=xl_base_patched.clip, prompt=positive_prompt)
+        if negative_conditions is None:
+            negative_conditions = core.encode_prompt_condition(clip=xl_base_patched.clip, prompt=negative_prompt)
+
     xl_base_patched.clip.clip_layer(base_clip_skip)
     xl_refiner.clip.clip_layer(refiner_clip_skip)
-
-    positive_conditions_cache = positive_conditions
-    negative_conditions_cache = negative_conditions
 
     if input_image_path == None:
         latent = core.generate_empty_latent(width=width, height=height, batch_size=1)
@@ -183,19 +175,10 @@ def process(
 
     if xl_refiner is not None:
         with suppress_stdout():
-            positive_conditions_refiner = (
-                core.encode_prompt_condition(clip=xl_refiner.clip, prompt=positive_prompt)
-                if positive_conditions_refiner_cache is None
-                else positive_conditions_refiner_cache
-            )
-            negative_conditions_refiner = (
-                core.encode_prompt_condition(clip=xl_refiner.clip, prompt=negative_prompt)
-                if negative_conditions_refiner_cache is None
-                else negative_conditions_refiner_cache
-            )
-
-        positive_conditions_refiner_cache = positive_conditions_refiner
-        negative_conditions_refiner_cache = negative_conditions_refiner
+            if positive_conditions_refiner is None:
+                positive_conditions_refiner = core.encode_prompt_condition(clip=xl_refiner.clip, prompt=positive_prompt)
+            if negative_conditions_refiner is None:
+                negative_conditions_refiner = core.encode_prompt_condition(clip=xl_refiner.clip, prompt=negative_prompt)
 
         sampled_latent = core.ksampler_with_refiner(
             model=xl_base_patched.unet,
