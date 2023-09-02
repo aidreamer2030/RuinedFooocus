@@ -160,7 +160,6 @@ def process(
             else negative_conditions_cache
         )
     xl_base_patched.clip.clip_layer(base_clip_skip)
-    xl_refiner.clip.clip_layer(refiner_clip_skip)
 
     positive_conditions_cache = positive_conditions
     negative_conditions_cache = negative_conditions
@@ -182,6 +181,7 @@ def process(
             force_full_denoise = False
 
     if xl_refiner is not None:
+        xl_refiner.clip.clip_layer(refiner_clip_skip)
         with suppress_stdout():
             positive_conditions_refiner = (
                 core.encode_prompt_condition(clip=xl_refiner.clip, prompt=positive_prompt)
