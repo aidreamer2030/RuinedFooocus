@@ -416,7 +416,7 @@ with shared.gradio_root as block:
         )
 
         def stop_clicked():
-            interrupt_current_processing()
+            worker.interrupt_ruined_processing = True
 
         stop_button.click(fn=stop_clicked, queue=False)
 
